@@ -1,5 +1,5 @@
 {
-  "data_folder": "D:\\uni_drive\\Msc Datascience\\Year 2\\Thesis\\Siemens\\experimenten\\The_Hague\\Den Haag Data New\\MT TA MERTENS - DATASET 1\\",
+  "data_folder": ".\\data_set\\",
   "output_folder": ".\\results\\",
   "trajectories": {
     "T1":{
