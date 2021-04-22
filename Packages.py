@@ -10,14 +10,14 @@ import copy
 
 
 def check_hours(df):
+    """"Function to double check if hours are complete, delete hours with more than 3 zeroes"""
+
     minutes = ['00:00', '05:00', '10:00', '15:00', '20:00', '25:00', '30:00', '35:00', '40:00', '45:00', '50:00',
                '55:00']
     for date in df['timestamp'].dt.date.unique():
         current_day = df[df['timestamp'].dt.date == date]
         for hour in current_day['timestamp'].dt.hour.unique():
             current_hour = current_day[current_day['timestamp'].dt.hour == hour]
-            # if list(current_hour['timestamp'].map(lambda x: str(x)[-5:])) != minutes:
-            #    df = df.drop(current_hour.index)
             if (len(current_hour) != 12):
                 df.drop(current_hour.index, inplace=True)
             try:
@@ -73,11 +73,6 @@ def read_folder(current_intersection, configs, trac, direc):
     df = df.loc[
         (df['timestamp'] > '2014-12-31') & (df['timestamp'] < '2020-05-31')]  # delete faulty datapoints outside scope
 
-    # delete days that are not full so we can make nice and consistens dataframes
-    # dates_to_keep = df.groupby(by=df['timestamp'].dt.date).size()  # groupby dates and size of values
-    # dates_to_keep = dates_to_keep[
-    #    dates_to_keep.values == 288]  # 12*24=288, save dates that have those values
-    # df = df[df['timestamp'].dt.date.isin(dates_to_keep)]  # only keep full days.
     df = df.reset_index(drop=True)
     df = check_hours(df)  # try this afterwards
     return df
@@ -93,7 +88,7 @@ def fpd(df, configs, intersection, hours=1):
     df.columns = ['timestamp', 'cars', 'total']
     df['cars'][df['cars'] < 0] = 0  # some inconistencies in the data where cars could be negative
     df['total'][df[
-                    'total'] < 0] = 1  # some inconsistencies in the data where total cars could be negative, set to 1 to avoid problems. #edit NH - idk if this happens in this data as well.
+                    'total'] < 0] = 1  # some inconsistencies in the data where total cars could be negative, set to 1 to avoid problems
     df['prob'] = df['cars'] / df['total']
 
     return df
@@ -148,20 +143,18 @@ def create_matrices(inputs, intersection):
                     except:
                         m[hour] = 0
 
-                # manually set difference to 0 for m[i][i]:
+            # manually set difference to 0 for m[i][i]:
             for i in range(0, len(data)):
                 try:
                     m[i][i] = 0
                 except:
                     return m
 
-                # now put this into a numpy array for the algo:
+            # now put this into a numpy array for the algo:
             x = np.array([m[v] for v in m])
             x = np.nan_to_num(x)
             all_data.append((x, timeslot[1]))  # append data with tuple of matrix,dates
 
-    # with open('./Bha_matrices/'+direction+'/'+ inputs[7] + '.pkl', 'wb') as f:
-    #    pickle.dump(all_data, f, pickle.HIGHEST_PROTOCOL) #dump as a pickle file onto disk
     return all_data
 
 
@@ -173,10 +166,7 @@ def perform_lof(intersection_matrix, name):
     for i in range(len(intersection_matrix)):  # for each weekday; 0 = monday 00:00, 168 = sunday 23:00
         datas = intersection_matrix[i][0]  # data is here
         dates = intersection_matrix[i][1]  # timeslots
-
         outliers, lof_scores = lof(datas)
-
-        # print("Amount of outliers on slot "+str(i)+" is "+str(len(outliers))+ " out of total hours of "+str(len(datas)))
         outlier_dates = [dates[x] for x in outliers]
         only_outliers.append([outliers, outlier_dates])
         outlier_count += len(outliers)
@@ -189,7 +179,7 @@ def perform_lof(intersection_matrix, name):
             print("Outliers in {}: {} out of {} data points.".format(name, str(outlier_count), str(total_length)))
         else:
             print('Problem with data in {}'.format(name))
-    
+
     return only_outliers, results
 
 
@@ -225,29 +215,6 @@ def create_lof_df(fpd_output, lof_output):
     return df
 
 
-def create_outlier_df(fpd_output, lof_binary_output):
-    df = pd.DataFrame()
-    try:
-        for intersection in fpd_output.keys():
-            dates = copy.deepcopy(fpd_output[intersection])
-            dates = dates.drop(columns=['weekday', 'hour'])
-            dates = dates.groupby(
-                pd.Grouper(key='timestamp', freq="H")).sum()  # extract hourly timeslots which have data
-            dates[intersection] = float(0.0)  # input 0 at dates with available data for this intersection
-            dates = dates.drop(columns=['cars', 'total', 'prob'])
-            for x in lof_binary_output[intersection][0]:  # x=timeslot(0-167)
-                if len(x) > 0:  # if not empty
-                    outlier_timeslots = x[1]
-                    outlier_df = pd.DataFrame(index=outlier_timeslots, data=[1 for x in outlier_timeslots],
-                                              columns=[intersection])
-                    dates.update(outlier_df)
-            df = pd.merge(df, dates, left_index=True, right_index=True, how='outer')
-    except Exception as e:
-        print(e)
-        return df, outlier_df
-    return df
-
-
 def create_historical_outlier_dfs():
     """Uses all functions above to return 'results'- output with outlier comparison dfs and the intermediate data which was processed.
     Input: list of intersection names (e.g.:'196003'). Will read data from folder in config file, list of intersections should also be there."""
@@ -275,13 +242,9 @@ def create_historical_outlier_dfs():
             lof = {}
             for intersection in matrices:
                 lof[intersection] = perform_lof(matrices[intersection], intersection)
-                # output example: lof[isct]=[binary outliers, all LOF scores]
-            # Now build 2 dfs: 1. binary outlier DF (with just the top outliers? Or general binary output?? IDK yet. & 2. with raw LOF scores.
-            try:
-                lof_df = create_lof_df(fpds, lof)
-            except:
-                continue
-            # binary_lof_df = create_outlier_df(fpds, lof)
+            # Now build LOF df
+            lof_df = create_lof_df(fpds, lof)
+
             approach_results = {'raw': raw_data, 'fpds': fpds, 'matrices': matrices, 'lof': lof, 'lof_df': lof_df}
             final_results[trajectory][direction] = approach_results
             print("Finished approach " + trajectory)

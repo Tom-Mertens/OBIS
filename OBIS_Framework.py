@@ -9,5 +9,5 @@ import Packages
 
 
 if __name__ == "__main__":
-    all_results = Packages.create_historical_outlier_dfs(data_folder)
+    all_results = Packages.create_historical_outlier_dfs()
     pickle.dump(all_results, open("./results/OBIS_results.pickle", "wb"))
