@@ -1,12 +1,12 @@
 # OBIS
  Outlier Based Intersection Selection Framework
 
-This repo contains the code for the OBIS Framework, a smart way to select the right intersections for a traffic prediction model. You can use it for your own traffic dataset, or for the The Hague dataset that you can download here: [the link to the dataset will be given upon acceptance]
+This repo contains the code for the OBIS Framework, a smart way to select the right intersections for a traffic prediction model. You can use it for your own traffic dataset, or for the The Hague dataset that you can download here: https://vanderlande-my.sharepoint.com/:f:/p/tom_mertens/EnEqi9Q-2wRKh-JMuV86EmcB4TqPVM_XESvqaTRXSdECtg?e=gOH2Df
 (if for your own dataset, you might need to make changes to the data input - as of now, the framework is configured for the The Hague dataset, which is in the CSV format, with files for each month (and the final row is the total for that month). Furhtermore, you need to be able to select the right sensors). 
 
 To use it for the The Hague dataset, instructions are as follows:
 1. Clone this repo.
-2. Download dataset from Google Drive & save it in the "data_set" folder.
+2. Download dataset from One Drive & save it in the "data_set" folder.
 3. I used Python 3.8 (other versions will probably also work). Make sure to install the requirements.
 4. Run "OBIS_Framework.py" - this will take a while, should eventually create a file in the "results" folder named "OBIS_results.pickle"
 5. In the results folder are two notebooks, one for plotting purposes (to generate the graphs for the paper) and one for testing the results; "LSTM.ipynb"
